@@ -1,11 +1,14 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, BadgeCheck, MapPin, Star, Phone, MessageCircle, Calendar, Award, Briefcase, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, BadgeCheck, MapPin, Star, Phone, MessageCircle, Calendar, Award, Briefcase, CheckCircle2, Lock } from "lucide-react";
+import { toast } from "sonner";
 import { Navbar } from "@/components/Navbar";
 import { MLScoreRing } from "@/components/MLScoreRing";
 import { WORKERS, REVIEWS } from "@/lib/mock-data";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/worker/$id")({
+  ssr: false,
   head: ({ params }) => {
     const w = WORKERS.find((x) => x.id === params.id);
     return {
@@ -26,6 +29,26 @@ function WorkerProfile() {
   const { id } = Route.useParams();
   const worker = WORKERS.find((w) => w.id === id) ?? WORKERS[0];
   const [tab, setTab] = useState<Tab>("Overview");
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const requireAuth = (action: string) => {
+    if (!user) {
+      toast.error("Please sign in to continue", { description: `You need a user account to ${action}.` });
+      navigate({ to: "/login", search: { redirect: `/worker/${worker.id}`, mode: "user" } as any });
+      return false;
+    }
+    if (user.role === "admin") {
+      toast.error("Switch to a user account to hire workers");
+      return false;
+    }
+    return true;
+  };
+
+  const onHire = () => { if (requireAuth("hire a worker")) toast.success(`Hire request sent to ${worker.name}`, { description: "They'll respond within their average response time." }); };
+  const onSchedule = () => { if (requireAuth("schedule a job")) toast.success("Opening scheduler…"); };
+  const onReveal = () => { if (requireAuth("view contact details")) toast.success("Phone number revealed"); };
+  const onChat = () => { if (requireAuth("start a chat")) toast.success("Opening chat…"); };
 
   return (
     <div className="min-h-screen bg-background">
