@@ -197,11 +197,11 @@ function WorkerProfile() {
                 <div className="space-y-3 max-w-md">
                   <div className="flex items-center justify-between p-4 border border-border rounded-xl">
                     <div className="flex items-center gap-3"><Phone className="w-4 h-4 text-primary" /><span className="text-sm">+91 ••••• 4521</span></div>
-                    <button className="text-xs text-primary font-medium">Reveal</button>
+                    <button onClick={onReveal} className="text-xs text-primary font-medium">Reveal</button>
                   </div>
                   <div className="flex items-center justify-between p-4 border border-border rounded-xl">
                     <div className="flex items-center gap-3"><MessageCircle className="w-4 h-4 text-primary" /><span className="text-sm">In-app messaging</span></div>
-                    <button className="text-xs px-3 py-1.5 rounded-md bg-primary text-primary-foreground font-medium">Open chat</button>
+                    <button onClick={onChat} className="text-xs px-3 py-1.5 rounded-md bg-primary text-primary-foreground font-medium">Open chat</button>
                   </div>
                 </div>
               )}
@@ -219,10 +219,10 @@ function WorkerProfile() {
               </div>
               <MLScoreRing score={worker.mlScore} size={48} stroke={4} />
             </div>
-            <button className="mt-5 w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg py-3 font-medium transition shadow-[0_8px_24px_-8px_rgba(29,158,117,0.6)]">
-              Hire now
+            <button onClick={onHire} className="mt-5 w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg py-3 font-medium transition shadow-[0_8px_24px_-8px_rgba(29,158,117,0.6)] flex items-center justify-center gap-2">
+              {!user && <Lock className="w-4 h-4" />} Hire now
             </button>
-            <button className="mt-2 w-full border border-border text-foreground hover:bg-secondary rounded-lg py-3 font-medium transition flex items-center justify-center gap-2">
+            <button onClick={onSchedule} className="mt-2 w-full border border-border text-foreground hover:bg-secondary rounded-lg py-3 font-medium transition flex items-center justify-center gap-2">
               <Calendar className="w-4 h-4" /> Schedule for later
             </button>
             <div className="mt-5 pt-5 border-t border-border space-y-2 text-sm">
