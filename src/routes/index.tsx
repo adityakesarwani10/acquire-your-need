@@ -3,9 +3,10 @@ import { useEffect, useState } from "react";
 import {
   Search, MapPin, ArrowRight, Zap, Wrench, Hammer, PaintBucket, Snowflake,
   Sparkles, BookOpen, Car, ChefHat, Bug, Refrigerator, Shield, Brain,
-  CheckCircle2, Star, Quote,
+  CheckCircle2, Star, Quote, Loader2,
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
+import { useDetectedLocation } from "@/lib/use-location";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -55,6 +56,7 @@ function Stat({ value, suffix, label }: { value: number; suffix?: string; label:
 }
 
 function Landing() {
+  const { location, detecting, setManual } = useDetectedLocation();
   return (
     <div className="min-h-screen bg-background">
       {/* HERO */}
@@ -97,10 +99,12 @@ function Landing() {
                   />
                 </div>
                 <div className="hidden sm:flex items-center gap-2 px-3 border-l border-white/10">
-                  <MapPin className="w-4 h-4 text-white/60" />
+                  {detecting ? <Loader2 className="w-4 h-4 text-white/60 animate-spin" /> : <MapPin className="w-4 h-4 text-primary" />}
                   <input
-                    placeholder="Bengaluru"
-                    className="bg-transparent outline-none text-white placeholder:text-white/40 py-3 w-32 text-sm"
+                    value={location.city}
+                    onChange={(e) => setManual(e.target.value)}
+                    placeholder="Detecting…"
+                    className="bg-transparent outline-none text-white placeholder:text-white/40 py-3 w-36 text-sm"
                   />
                 </div>
                 <Link to="/search" className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-3 rounded-xl text-sm font-medium transition">

@@ -1,11 +1,14 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, BadgeCheck, MapPin, Star, Phone, MessageCircle, Calendar, Award, Briefcase, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, BadgeCheck, MapPin, Star, Phone, MessageCircle, Calendar, Award, Briefcase, CheckCircle2, Lock } from "lucide-react";
+import { toast } from "sonner";
 import { Navbar } from "@/components/Navbar";
 import { MLScoreRing } from "@/components/MLScoreRing";
 import { WORKERS, REVIEWS } from "@/lib/mock-data";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/worker/$id")({
+  ssr: false,
   head: ({ params }) => {
     const w = WORKERS.find((x) => x.id === params.id);
     return {
@@ -26,6 +29,26 @@ function WorkerProfile() {
   const { id } = Route.useParams();
   const worker = WORKERS.find((w) => w.id === id) ?? WORKERS[0];
   const [tab, setTab] = useState<Tab>("Overview");
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const requireAuth = (action: string) => {
+    if (!user) {
+      toast.error("Please sign in to continue", { description: `You need a user account to ${action}.` });
+      navigate({ to: "/login", search: { redirect: `/worker/${worker.id}`, mode: "user" } as any });
+      return false;
+    }
+    if (user.role === "admin") {
+      toast.error("Switch to a user account to hire workers");
+      return false;
+    }
+    return true;
+  };
+
+  const onHire = () => { if (requireAuth("hire a worker")) toast.success(`Hire request sent to ${worker.name}`, { description: "They'll respond within their average response time." }); };
+  const onSchedule = () => { if (requireAuth("schedule a job")) toast.success("Opening scheduler…"); };
+  const onReveal = () => { if (requireAuth("view contact details")) toast.success("Phone number revealed"); };
+  const onChat = () => { if (requireAuth("start a chat")) toast.success("Opening chat…"); };
 
   return (
     <div className="min-h-screen bg-background">
@@ -174,11 +197,11 @@ function WorkerProfile() {
                 <div className="space-y-3 max-w-md">
                   <div className="flex items-center justify-between p-4 border border-border rounded-xl">
                     <div className="flex items-center gap-3"><Phone className="w-4 h-4 text-primary" /><span className="text-sm">+91 ••••• 4521</span></div>
-                    <button className="text-xs text-primary font-medium">Reveal</button>
+                    <button onClick={onReveal} className="text-xs text-primary font-medium">Reveal</button>
                   </div>
                   <div className="flex items-center justify-between p-4 border border-border rounded-xl">
                     <div className="flex items-center gap-3"><MessageCircle className="w-4 h-4 text-primary" /><span className="text-sm">In-app messaging</span></div>
-                    <button className="text-xs px-3 py-1.5 rounded-md bg-primary text-primary-foreground font-medium">Open chat</button>
+                    <button onClick={onChat} className="text-xs px-3 py-1.5 rounded-md bg-primary text-primary-foreground font-medium">Open chat</button>
                   </div>
                 </div>
               )}
@@ -196,10 +219,10 @@ function WorkerProfile() {
               </div>
               <MLScoreRing score={worker.mlScore} size={48} stroke={4} />
             </div>
-            <button className="mt-5 w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg py-3 font-medium transition shadow-[0_8px_24px_-8px_rgba(29,158,117,0.6)]">
-              Hire now
+            <button onClick={onHire} className="mt-5 w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg py-3 font-medium transition shadow-[0_8px_24px_-8px_rgba(29,158,117,0.6)] flex items-center justify-center gap-2">
+              {!user && <Lock className="w-4 h-4" />} Hire now
             </button>
-            <button className="mt-2 w-full border border-border text-foreground hover:bg-secondary rounded-lg py-3 font-medium transition flex items-center justify-center gap-2">
+            <button onClick={onSchedule} className="mt-2 w-full border border-border text-foreground hover:bg-secondary rounded-lg py-3 font-medium transition flex items-center justify-center gap-2">
               <Calendar className="w-4 h-4" /> Schedule for later
             </button>
             <div className="mt-5 pt-5 border-t border-border space-y-2 text-sm">
