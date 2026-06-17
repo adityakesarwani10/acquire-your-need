@@ -33,6 +33,7 @@ const ACTIVITY = [
 
 function Dashboard() {
   const [search, setSearch] = useState("");
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-background">
@@ -70,14 +71,14 @@ function Dashboard() {
           <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 items-center mb-8">
             <div className="min-w-0">
               <div className="text-sm text-muted-foreground">Good evening,</div>
-              <h1 className="text-2xl sm:text-3xl font-bold truncate">Aakash 👋</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold truncate">{user?.name ?? "Friend"} 👋</h1>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <button className="w-10 h-10 rounded-lg border border-border hover:bg-secondary transition grid place-items-center relative">
                 <Bell className="w-4 h-4" />
                 <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
               </button>
-              <img src="https://api.dicebear.com/9.x/notionists/svg?seed=Aakash" className="w-10 h-10 rounded-lg bg-muted" alt="" />
+              <img src={user?.avatar} className="w-10 h-10 rounded-lg bg-muted" alt="" />
             </div>
           </div>
 
