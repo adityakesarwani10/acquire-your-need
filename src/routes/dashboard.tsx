@@ -6,12 +6,14 @@ import {
 } from "lucide-react";
 import { WorkerCard } from "@/components/WorkerCard";
 import { WORKERS } from "@/lib/mock-data";
+import { RequireAuth, useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/dashboard")({
+  ssr: false,
   head: () => ({
     meta: [{ title: "Dashboard — Acquire·Your·Need" }],
   }),
-  component: Dashboard,
+  component: () => <RequireAuth><Dashboard /></RequireAuth>,
 });
 
 const NAV = [
