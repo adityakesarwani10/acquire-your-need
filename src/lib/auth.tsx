@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export type Role = "user" | "admin" | "worker";
 export type AuthUser = { id: string; name: string; email: string; role: Role; avatar: string };
@@ -15,14 +15,12 @@ type AuthCtx = {
 const Ctx = createContext<AuthCtx | null>(null);
 const STORAGE_KEY = "ayn.auth.user";
 
-// Seed accounts so admin login works out of the box
 const SEED = [
   { email: "admin@ayn.com", password: "admin123", name: "Admin", role: "admin" as Role },
   { email: "demo@ayn.com", password: "demo1234", name: "Aakash", role: "user" as Role },
 ];
 
-function readUsersDB(): Array<{ email: string; password: string; name: string; role: Role }> {
-  if (typeof window === "undefined") return SEED;
+function readUsersDB() {
   try {
     const raw = localStorage.getItem("ayn.users");
     const arr = raw ? JSON.parse(raw) : [];
@@ -34,7 +32,6 @@ function readUsersDB(): Array<{ email: string; password: string; name: string; r
   }
 }
 function writeUsersDB(db: Array<{ email: string; password: string; name: string; role: Role }>) {
-  if (typeof window === "undefined") return;
   const custom = db.filter((u) => !SEED.find((s) => s.email === u.email));
   localStorage.setItem("ayn.users", JSON.stringify(custom));
 }
@@ -53,10 +50,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const persist = (u: AuthUser | null) => {
     setUser(u);
-    if (typeof window !== "undefined") {
-      if (u) localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
-      else localStorage.removeItem(STORAGE_KEY);
-    }
+    if (u) localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+    else localStorage.removeItem(STORAGE_KEY);
   };
 
   const login: AuthCtx["login"] = async (email, password, role) => {
@@ -66,10 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!match) throw new Error("Invalid email or password");
     if (role && match.role !== role) throw new Error(`This account is not a ${role} account`);
     const u: AuthUser = {
-      id: match.email,
-      name: match.name,
-      email: match.email,
-      role: match.role,
+      id: match.email, name: match.name, email: match.email, role: match.role,
       avatar: `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(match.email)}`,
     };
     persist(u);
@@ -104,14 +96,15 @@ export function useAuth() {
 export function RequireAuth({ children, role }: { children: ReactNode; role?: Role }) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { pathname } = useLocation();
 
   useEffect(() => {
     if (loading) return;
     if (!user) {
-      navigate({ to: "/login", search: { redirect: pathname, mode: role === "admin" ? "admin" : "user" } as any });
+      const mode = role === "admin" ? "admin" : "user";
+      navigate(`/login?redirect=${encodeURIComponent(pathname)}&mode=${mode}`, { replace: true });
     } else if (role && user.role !== role) {
-      navigate({ to: "/login", search: { redirect: pathname, mode: role } as any });
+      navigate(`/login?redirect=${encodeURIComponent(pathname)}&mode=${role}`, { replace: true });
     }
   }, [user, loading, role, navigate, pathname]);
 
