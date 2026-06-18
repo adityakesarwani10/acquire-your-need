@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link } from "react-router-dom";
 import { MapPin, Star, BadgeCheck, ArrowRight } from "lucide-react";
 import { MLScoreRing } from "./MLScoreRing";
 import type { Worker } from "@/lib/mock-data";
@@ -48,8 +48,7 @@ export function WorkerCard({ worker, rank }: { worker: Worker; rank?: number }) 
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">per hour</div>
             </div>
             <Link
-              to="/worker/$id"
-              params={{ id: worker.id }}
+              to={`/worker/${worker.id}`}
               className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-foreground text-background text-sm font-medium hover:bg-foreground/90 transition"
             >
               View <ArrowRight className="w-3.5 h-3.5" />
