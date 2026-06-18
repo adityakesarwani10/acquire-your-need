@@ -107,7 +107,7 @@ export default function WorkerDashboard() {
                 <div className="text-xs text-muted-foreground truncate">{user?.skill ?? "Electrician"}</div>
               </div>
               {user?.verified && (
-                <Shield className="w-4 h-4 text-primary ml-auto flex-shrink-0" />
+                <Shield className="w-4 h-4 text-primary ml-auto shrink-0" />
               )}
             </div>
             {/* Availability toggle */}
