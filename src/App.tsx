@@ -7,6 +7,7 @@ import Search from "./pages/Search";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
 import Worker from "./pages/Worker";
+import WorkerDashboard from "./pages/WorkerDashboard";
 import { RequireAuth } from "./lib/auth";
 
 function NotFound() {
@@ -33,7 +34,8 @@ export default function App() {
       <Route path="/signup" element={<Signup />} />
       <Route path="/search" element={<Search />} />
       <Route path="/worker/:id" element={<Worker />} />
-      <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
+      <Route path="/dashboard" element={<RequireAuth role="user"><Dashboard /></RequireAuth>} />
+      <Route path="/worker-dashboard" element={<RequireAuth role="worker"><WorkerDashboard /></RequireAuth>} />
       <Route path="/admin" element={<RequireAuth role="admin"><Admin /></RequireAuth>} />
       <Route path="*" element={<NotFound />} />
     </Routes>

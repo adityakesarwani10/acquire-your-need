@@ -149,7 +149,7 @@ export function RequireAuth({ children, role }: { children: ReactNode; role?: Ro
   useEffect(() => {
     if (loading) return;
     if (!user) {
-      const mode = role === "admin" ? "admin" : "user";
+      const mode = role ?? "user";
       navigate(`/login?redirect=${encodeURIComponent(pathname)}&mode=${mode}`, { replace: true });
     } else if (role && user.role !== role) {
       navigate(`/login?redirect=${encodeURIComponent(pathname)}&mode=${role}`, { replace: true });

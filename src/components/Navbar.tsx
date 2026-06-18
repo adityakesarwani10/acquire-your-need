@@ -31,15 +31,20 @@ export function Navbar({ variant = "light" }: { variant?: "light" | "dark" }) {
         </Link>
         <nav className="hidden md:flex items-center gap-7 text-sm">
           <Link to="/search" className={`${isDark ? "text-white/70 hover:text-white" : "text-muted-foreground hover:text-foreground"} transition`}>Find workers</Link>
-          {user?.role !== "admin" && (
+          {user?.role === "user" && (
             <Link to="/dashboard" className={`${isDark ? "text-white/70 hover:text-white" : "text-muted-foreground hover:text-foreground"} transition`}>Dashboard</Link>
+          )}
+          {user?.role === "worker" && (
+            <Link to="/worker-dashboard" className={`${isDark ? "text-white/70 hover:text-white" : "text-muted-foreground hover:text-foreground"} transition`}>Dashboard</Link>
           )}
           {user?.role === "admin" && (
             <Link to="/admin" className={`${isDark ? "text-white/70 hover:text-white" : "text-muted-foreground hover:text-foreground"} transition flex items-center gap-1`}>
               <Shield className="w-3.5 h-3.5" /> Admin
             </Link>
           )}
-          <Link to="/signup" className={`${isDark ? "text-white/70 hover:text-white" : "text-muted-foreground hover:text-foreground"} transition`}>Become a pro</Link>
+          {!user && (
+            <Link to="/signup" className={`${isDark ? "text-white/70 hover:text-white" : "text-muted-foreground hover:text-foreground"} transition`}>Become a pro</Link>
+          )}
         </nav>
         <div className="flex items-center gap-2">
           {!user ? (
@@ -70,7 +75,7 @@ export function Navbar({ variant = "light" }: { variant?: "light" | "dark" }) {
                       </span>
                     )}
                   </div>
-                  <Link to={user.role === "admin" ? "/admin" : "/dashboard"} onClick={() => setOpen(false)}
+                  <Link to={user.role === "admin" ? "/admin" : user.role === "worker" ? "/worker-dashboard" : "/dashboard"} onClick={() => setOpen(false)}
                     className="flex items-center gap-2 px-3 py-2 rounded-md text-sm hover:bg-secondary text-foreground transition">
                     <LayoutDashboard className="w-4 h-4" /> {user.role === "admin" ? "Admin console" : "Dashboard"}
                   </Link>

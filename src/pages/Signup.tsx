@@ -1,6 +1,7 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Check, ArrowRight, ArrowLeft, Upload, Sparkles, X } from "lucide-react";
+import { Check, ArrowRight, ArrowLeft, Upload, Sparkles, X, Loader2 } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 const STEPS = [
   { n: 1, title: "Basics", sub: "Tell us who you are" },
@@ -22,7 +23,11 @@ const SUB_BY_SKILL: Record<string, string[]> = {
 
 export default function Signup() {
   useEffect(() => { document.title = "Become a pro — Acquire·Your·Need"; }, []);
+  const { signup } = useAuth();
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   const [data, setData] = useState({
     name: "", email: "", phone: "", password: "",
     skill: "", subSkills: [] as string[], experience: 3, city: "Bengaluru", area: "",
@@ -39,6 +44,34 @@ export default function Signup() {
 
   const next = () => valid && setStep(Math.min(4, step + 1));
   const back = () => setStep(Math.max(1, step - 1));
+
+  const handleSubmit = async () => {
+    setErr(null);
+    setBusy(true);
+    try {
+      await signup(data.name, data.email, data.password, "worker", {
+        skill: data.skill,
+        subSkills: data.subSkills,
+        experience: data.experience,
+        city: data.city,
+        area: data.area,
+        jobsCompleted: Number(data.jobs) || 0,
+        previousEmployer: data.previousEmployer,
+        aadhar: data.aadhar,
+        license: data.license,
+        pricePerHour: 350,
+        mlScore: 70,
+        rating: 0,
+        reviewCount: 0,
+        available: true,
+        verified: false,
+      });
+      navigate("/worker-dashboard");
+    } catch (e: any) {
+      setErr(e.message || "Something went wrong. Try again.");
+      setBusy(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -184,9 +217,14 @@ export default function Signup() {
                 Continue <ArrowRight className="w-4 h-4" />
               </button>
             ) : (
-              <Link to="/dashboard" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium transition shadow-[0_4px_14px_-4px_rgba(29,158,117,0.5)]">
-                Finish & submit <Check className="w-4 h-4" />
-              </Link>
+              <div className="flex flex-col items-end gap-2">
+                {err && <p className="text-xs text-red-500">{err}</p>}
+                <button onClick={handleSubmit} disabled={busy}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium transition disabled:opacity-60 shadow-[0_4px_14px_-4px_rgba(29,158,117,0.5)]">
+                  {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  {busy ? "Creating account..." : "Finish & submit"}
+                </button>
+              </div>
             )}
           </div>
         </div>
