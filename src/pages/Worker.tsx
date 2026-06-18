@@ -1,5 +1,5 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { ArrowLeft, BadgeCheck, MapPin, Star, Phone, MessageCircle, Calendar, Award, Briefcase, CheckCircle2, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { Navbar } from "@/components/Navbar";
@@ -7,35 +7,22 @@ import { MLScoreRing } from "@/components/MLScoreRing";
 import { WORKERS, REVIEWS } from "@/lib/mock-data";
 import { useAuth } from "@/lib/auth";
 
-export const Route = createFileRoute("/worker/$id")({
-  ssr: false,
-  head: ({ params }) => {
-    const w = WORKERS.find((x) => x.id === params.id);
-    return {
-      meta: [
-        { title: `${w?.name ?? "Worker"} — Acquire·Your·Need` },
-        { name: "description", content: w?.bio ?? "Worker profile" },
-      ],
-    };
-  },
-  component: WorkerProfile,
-  notFoundComponent: () => <div className="p-12 text-center">Worker not found</div>,
-});
-
 const TABS = ["Overview", "Reviews", "Portfolio", "Contact"] as const;
 type Tab = typeof TABS[number];
 
-function WorkerProfile() {
-  const { id } = Route.useParams();
+export default function WorkerProfile() {
+  const { id } = useParams<{ id: string }>();
   const worker = WORKERS.find((w) => w.id === id) ?? WORKERS[0];
   const [tab, setTab] = useState<Tab>("Overview");
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  useEffect(() => { document.title = `${worker.name} — Acquire·Your·Need`; }, [worker.name]);
+
   const requireAuth = (action: string) => {
     if (!user) {
       toast.error("Please sign in to continue", { description: `You need a user account to ${action}.` });
-      navigate({ to: "/login", search: { redirect: `/worker/${worker.id}`, mode: "user" } as any });
+      navigate(`/login?redirect=${encodeURIComponent(`/worker/${worker.id}`)}&mode=user`);
       return false;
     }
     if (user.role === "admin") {
@@ -54,7 +41,6 @@ function WorkerProfile() {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      {/* Cover */}
       <div className="relative h-64 bg-navy overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute -top-20 left-10 w-[400px] h-[400px] rounded-full opacity-40 blur-3xl animate-float-slow"
@@ -70,7 +56,6 @@ function WorkerProfile() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 -mt-20 relative z-10 grid lg:grid-cols-[1fr_340px] gap-8">
-        {/* Main */}
         <div>
           <div className="card-soft p-6 md:p-8">
             <div className="flex flex-col md:flex-row gap-6 items-start">
@@ -99,7 +84,6 @@ function WorkerProfile() {
               <MLScoreRing score={worker.mlScore} size={80} stroke={7} />
             </div>
 
-            {/* Tabs */}
             <div className="mt-8 border-b border-border flex gap-1 overflow-x-auto">
               {TABS.map((t) => (
                 <button
@@ -113,7 +97,6 @@ function WorkerProfile() {
               ))}
             </div>
 
-            {/* Tab content */}
             <div key={tab} className="pt-6 animate-count-up">
               {tab === "Overview" && (
                 <div className="space-y-8">
@@ -209,7 +192,6 @@ function WorkerProfile() {
           </div>
         </div>
 
-        {/* Sticky hire sidebar */}
         <aside className="lg:sticky lg:top-24 h-fit space-y-4">
           <div className="card-soft p-6">
             <div className="flex items-baseline justify-between">

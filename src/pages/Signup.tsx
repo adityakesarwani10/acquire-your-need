@@ -1,13 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Check, ArrowRight, ArrowLeft, Upload, Sparkles, X } from "lucide-react";
-
-export const Route = createFileRoute("/signup")({
-  head: () => ({
-    meta: [{ title: "Become a pro — Acquire·Your·Need" }],
-  }),
-  component: Signup,
-});
 
 const STEPS = [
   { n: 1, title: "Basics", sub: "Tell us who you are" },
@@ -27,7 +20,8 @@ const SUB_BY_SKILL: Record<string, string[]> = {
   Mason: ["Brickwork", "Plastering", "Tiling"],
 };
 
-function Signup() {
+export default function Signup() {
+  useEffect(() => { document.title = "Become a pro — Acquire·Your·Need"; }, []);
   const [step, setStep] = useState(1);
   const [data, setData] = useState({
     name: "", email: "", phone: "", password: "",
@@ -61,7 +55,6 @@ function Signup() {
       </header>
 
       <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-10 flex-1">
-        {/* Stepper */}
         <div className="mb-10">
           <div className="flex items-center justify-between mb-3 text-xs text-muted-foreground">
             <span>Step {step} of 4</span>

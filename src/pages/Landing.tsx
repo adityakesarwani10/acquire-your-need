@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
   Search, MapPin, ArrowRight, Zap, Wrench, Hammer, PaintBucket, Snowflake,
@@ -7,16 +7,6 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useDetectedLocation } from "@/lib/use-location";
-
-export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Acquire·Your·Need — ML-powered skilled worker discovery" },
-      { name: "description", content: "Find verified plumbers, electricians, carpenters & more. Ranked by ML, hired in minutes." },
-    ],
-  }),
-  component: Landing,
-});
 
 const CATS = [
   { label: "Electrician", icon: Zap }, { label: "Plumber", icon: Wrench },
@@ -55,14 +45,13 @@ function Stat({ value, suffix, label }: { value: number; suffix?: string; label:
   );
 }
 
-function Landing() {
+export default function Landing() {
   const { location, detecting, setManual } = useDetectedLocation();
+  useEffect(() => { document.title = "Acquire·Your·Need — ML-powered skilled worker discovery"; }, []);
   return (
     <div className="min-h-screen bg-background">
-      {/* HERO */}
       <div className="relative bg-navy overflow-hidden">
         <Navbar variant="dark" />
-        {/* animated gradient blobs */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full opacity-40 blur-3xl animate-float-slow"
                style={{ background: "radial-gradient(circle, oklch(0.55 0.18 162) 0%, transparent 70%)" }} />
@@ -88,7 +77,6 @@ function Landing() {
               Our ML model evaluates 40+ signals to surface the right professional for your job — not just the cheapest or closest.
             </p>
 
-            {/* Glass search */}
             <div className="mt-10 max-w-2xl mx-auto animate-count-up" style={{ animationDelay: "0.15s" }}>
               <div className="glass rounded-2xl p-2 flex items-center gap-1 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]">
                 <div className="flex-1 flex items-center gap-2 px-3">
@@ -119,7 +107,6 @@ function Landing() {
               </div>
             </div>
 
-            {/* Stats */}
             <div className="mt-16 grid grid-cols-3 gap-6 max-w-2xl mx-auto pt-10 border-t border-white/10">
               <Stat value={2400} suffix="+" label="Verified workers" />
               <Stat value={18000} suffix="+" label="Jobs completed" />
@@ -128,7 +115,6 @@ function Landing() {
           </div>
         </div>
 
-        {/* Category scroller */}
         <div className="relative pb-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="flex gap-3 overflow-x-auto pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -147,16 +133,12 @@ function Landing() {
         </div>
       </div>
 
-      {/* HOW IT WORKS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-24">
         <div className="text-center mb-16">
           <div className="text-xs uppercase tracking-widest text-primary font-semibold">How it works</div>
           <h2 className="text-3xl md:text-4xl font-bold mt-3">From search to hire in minutes</h2>
         </div>
         <div className="relative grid md:grid-cols-3 gap-8">
-          <svg className="hidden md:block absolute top-10 left-[16%] right-[16%] w-auto h-2 -z-0" viewBox="0 0 800 8" preserveAspectRatio="none">
-            <path d="M0,4 Q200,-4 400,4 T800,4" stroke="var(--color-primary)" strokeWidth="2" strokeDasharray="6 6" fill="none" className="animate-draw-line" style={{ strokeDasharray: 1000 }} />
-          </svg>
           {[
             { n: "01", title: "Describe the job", text: "Tell us what needs fixing. One sentence is enough.", icon: Search },
             { n: "02", title: "ML ranks workers", text: "We score every available worker on 40+ signals.", icon: Brain },
@@ -176,7 +158,6 @@ function Landing() {
         </div>
       </section>
 
-      {/* ML SCORE EXPLAINER */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
         <div className="rounded-3xl bg-navy text-navy-foreground p-8 md:p-14 relative overflow-hidden">
           <div className="absolute inset-0 opacity-[0.06]"
@@ -190,7 +171,7 @@ function Landing() {
                 One number. <br /> Forty-plus signals.
               </h2>
               <p className="text-white/60 mt-4 leading-relaxed">
-                We learn from every completed job — response time, repeat hires, dispute outcomes, verified credentials, regional demand — to predict who will deliver the best outcome for <em>your</em> job.
+                We learn from every completed job to predict who will deliver the best outcome for <em>your</em> job.
               </p>
               <ul className="mt-6 space-y-2 text-sm text-white/80">
                 {["Updated after every job", "Bias-audited monthly", "Transparent breakdown on each profile"].map((t) => (
@@ -227,7 +208,6 @@ function Landing() {
         </div>
       </section>
 
-      {/* TESTIMONIALS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-24">
         <div className="text-center mb-14">
           <div className="text-xs uppercase tracking-widest text-primary font-semibold">Loved by 18k+ customers</div>
@@ -259,7 +239,6 @@ function Landing() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-24">
         <div className="rounded-3xl bg-gradient-to-br from-primary via-[color:var(--color-primary-glow)] to-emerald-400 p-10 md:p-16 relative overflow-hidden text-center">
           <div className="absolute inset-0 grid-bg opacity-30" />

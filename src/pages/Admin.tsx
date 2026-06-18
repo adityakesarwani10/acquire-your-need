@@ -1,23 +1,13 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import {
-  Shield, Users, Briefcase, TrendingUp, DollarSign, AlertTriangle,
+  Shield, Users, TrendingUp, DollarSign, AlertTriangle,
   Search as SearchIcon, CheckCircle2, XCircle, MoreHorizontal, LogOut, Sparkles,
   LayoutDashboard, UserCheck, MessageSquare, Settings,
 } from "lucide-react";
-import { RequireAuth, useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
 import { WORKERS, CATEGORIES } from "@/lib/mock-data";
 import { MLScoreRing } from "@/components/MLScoreRing";
-
-export const Route = createFileRoute("/admin")({
-  ssr: false,
-  head: () => ({ meta: [{ title: "Admin — Acquire·Your·Need" }] }),
-  component: () => (
-    <RequireAuth role="admin">
-      <AdminDashboard />
-    </RequireAuth>
-  ),
-});
 
 const NAV = [
   { label: "Overview", icon: LayoutDashboard, key: "overview" },
@@ -49,7 +39,8 @@ const DISPUTES = [
   { id: "d2", user: "Priya N.", worker: "Deepak Verma", reason: "Quality concerns on drain work", severity: "medium", age: "1d" },
 ];
 
-function AdminDashboard() {
+export default function AdminDashboard() {
+  useEffect(() => { document.title = "Admin — Acquire·Your·Need"; }, []);
   const { user, logout } = useAuth();
   const [tab, setTab] = useState<TabKey>("overview");
   const [q, setQ] = useState("");
@@ -57,7 +48,6 @@ function AdminDashboard() {
   return (
     <div className="min-h-screen bg-background">
       <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr]">
-        {/* Sidebar */}
         <aside className="lg:sticky lg:top-0 lg:h-screen border-r border-border bg-navy text-white flex lg:flex-col">
           <div className="p-6 hidden lg:block">
             <Link to="/" className="flex items-center gap-2">
@@ -96,7 +86,6 @@ function AdminDashboard() {
           </div>
         </aside>
 
-        {/* Main */}
         <main className="p-4 sm:p-8 max-w-7xl">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 items-center mb-8">
             <div className="min-w-0">
