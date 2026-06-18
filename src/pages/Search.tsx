@@ -1,23 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search, MapPin, SlidersHorizontal, Star, Inbox } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { WorkerCard } from "@/components/WorkerCard";
 import { WORKERS, CATEGORIES } from "@/lib/mock-data";
 
-export const Route = createFileRoute("/search")({
-  head: () => ({
-    meta: [
-      { title: "Search workers — Acquire·Your·Need" },
-      { name: "description", content: "Browse ranked, verified skilled workers near you." },
-    ],
-  }),
-  component: SearchPage,
-});
-
 type Sort = "ml" | "rating" | "experience" | "price";
 
-function SearchPage() {
+export default function SearchPage() {
+  useEffect(() => { document.title = "Search workers — Acquire·Your·Need"; }, []);
   const [q, setQ] = useState("");
   const [skill, setSkill] = useState<string>("all");
   const [minRating, setMinRating] = useState(0);
@@ -47,7 +37,6 @@ function SearchPage() {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      {/* Sticky search */}
       <div className="sticky top-16 z-30 bg-background/85 backdrop-blur-xl border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col md:flex-row gap-3">
           <div className="flex-1 flex items-center gap-2 px-3 card-soft py-1">
@@ -68,7 +57,6 @@ function SearchPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 grid lg:grid-cols-[280px_1fr] gap-8">
-        {/* Filters */}
         <aside className="card-soft p-5 h-fit lg:sticky lg:top-44">
           <div className="flex items-center gap-2 mb-5">
             <SlidersHorizontal className="w-4 h-4 text-primary" />
@@ -111,7 +99,6 @@ function SearchPage() {
           </div>
         </aside>
 
-        {/* Results */}
         <main>
           <div className="flex items-baseline justify-between mb-5">
             <h1 className="text-xl font-semibold">

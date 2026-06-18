@@ -1,20 +1,12 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard, Search as SearchIcon, Briefcase, MessageSquare, Settings,
   Sparkles, TrendingUp, Wallet, Star, ArrowUpRight, Plus, Bell, Clock,
 } from "lucide-react";
 import { WorkerCard } from "@/components/WorkerCard";
 import { WORKERS } from "@/lib/mock-data";
-import { RequireAuth, useAuth } from "@/lib/auth";
-
-export const Route = createFileRoute("/dashboard")({
-  ssr: false,
-  head: () => ({
-    meta: [{ title: "Dashboard — Acquire·Your·Need" }],
-  }),
-  component: () => <RequireAuth><Dashboard /></RequireAuth>,
-});
+import { useAuth } from "@/lib/auth";
 
 const NAV = [
   { label: "Overview", icon: LayoutDashboard, active: true },
@@ -31,14 +23,14 @@ const ACTIVITY = [
   { t: "Quote received from Anjali Reddy", time: "5 days ago", color: "navy" },
 ];
 
-function Dashboard() {
+export default function Dashboard() {
+  useEffect(() => { document.title = "Dashboard — Acquire·Your·Need"; }, []);
   const [search, setSearch] = useState("");
   const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-background">
       <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr]">
-        {/* Sidebar */}
         <aside className="lg:sticky lg:top-0 lg:h-screen border-r border-border bg-card flex lg:flex-col">
           <div className="p-6 hidden lg:block">
             <Link to="/" className="flex items-center gap-2">
@@ -65,9 +57,7 @@ function Dashboard() {
           </div>
         </aside>
 
-        {/* Main */}
         <main className="p-4 sm:p-8 max-w-6xl">
-          {/* Header */}
           <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 items-center mb-8">
             <div className="min-w-0">
               <div className="text-sm text-muted-foreground">Good evening,</div>
@@ -82,7 +72,6 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Quick search */}
           <div className="card-soft p-5 mb-6 bg-gradient-to-br from-primary/5 via-card to-card">
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex-1 min-w-[240px] flex items-center gap-2 bg-card border border-border rounded-lg px-3">
@@ -95,7 +84,6 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Stats */}
           <div className="grid sm:grid-cols-3 gap-4 mb-8">
             <StatCard label="Jobs hired" value="14" delta="+3 this month" icon={Briefcase} accent="primary" />
             <StatCard label="Money spent" value="₹28,450" delta="₹4,200 saved vs market" icon={Wallet} accent="navy" />
@@ -103,7 +91,6 @@ function Dashboard() {
           </div>
 
           <div className="grid lg:grid-cols-[1fr_320px] gap-6">
-            {/* Recommended */}
             <section>
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -121,7 +108,6 @@ function Dashboard() {
               </div>
             </section>
 
-            {/* Activity */}
             <aside>
               <div className="card-soft p-5">
                 <h3 className="font-semibold mb-4 flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /> Recent activity</h3>

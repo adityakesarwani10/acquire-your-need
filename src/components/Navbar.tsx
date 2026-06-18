@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "react-router-dom";
 import { Sparkles, LogOut, Shield, LayoutDashboard, ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
@@ -74,7 +74,7 @@ export function Navbar({ variant = "light" }: { variant?: "light" | "dark" }) {
                     className="flex items-center gap-2 px-3 py-2 rounded-md text-sm hover:bg-secondary text-foreground transition">
                     <LayoutDashboard className="w-4 h-4" /> {user.role === "admin" ? "Admin console" : "Dashboard"}
                   </Link>
-                  <button onClick={() => { logout(); setOpen(false); navigate({ to: "/" }); }}
+                  <button onClick={() => { logout(); setOpen(false); navigate("/"); }}
                     className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm hover:bg-secondary text-foreground transition">
                     <LogOut className="w-4 h-4" /> Sign out
                   </button>

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export type Role = "user" | "admin" | "worker";
 
@@ -144,14 +144,15 @@ export function useAuth() {
 export function RequireAuth({ children, role }: { children: ReactNode; role?: Role }) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { pathname } = useLocation();
 
   useEffect(() => {
     if (loading) return;
     if (!user) {
-      navigate({ to: "/login", search: { redirect: pathname, mode: role === "admin" ? "admin" : "user" } as any });
+      const mode = role === "admin" ? "admin" : "user";
+      navigate(`/login?redirect=${encodeURIComponent(pathname)}&mode=${mode}`, { replace: true });
     } else if (role && user.role !== role) {
-      navigate({ to: "/login", search: { redirect: pathname, mode: role } as any });
+      navigate(`/login?redirect=${encodeURIComponent(pathname)}&mode=${role}`, { replace: true });
     }
   }, [user, loading, role, navigate, pathname]);
 

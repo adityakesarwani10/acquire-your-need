@@ -1,31 +1,23 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Sparkles, Shield, User as UserIcon, Loader2, AlertCircle } from "lucide-react";
 import { useAuth, type Role } from "@/lib/auth";
 
-type Search = { redirect?: string; mode?: "user" | "admin" };
-
-export const Route = createFileRoute("/login")({
-  ssr: false,
-  validateSearch: (s: Record<string, unknown>): Search => ({
-    redirect: typeof s.redirect === "string" ? s.redirect : undefined,
-    mode: s.mode === "admin" ? "admin" : "user",
-  }),
-  head: () => ({ meta: [{ title: "Sign in — Acquire·Your·Need" }] }),
-  component: LoginPage,
-});
-
-function LoginPage() {
+export default function Login() {
   const { login, signup } = useAuth();
   const navigate = useNavigate();
-  const { redirect, mode } = Route.useSearch();
-  const [tab, setTab] = useState<"user" | "admin">(mode ?? "user");
+  const [params] = useSearchParams();
+  const redirect = params.get("redirect") || undefined;
+  const initialMode = params.get("mode") === "admin" ? "admin" : "user";
+  const [tab, setTab] = useState<"user" | "admin">(initialMode);
   const [isSignup, setIsSignup] = useState(false);
-  const [email, setEmail] = useState(tab === "admin" ? "admin@ayn.com" : "demo@ayn.com");
-  const [password, setPassword] = useState(tab === "admin" ? "admin123" : "demo1234");
+  const [email, setEmail] = useState(initialMode === "admin" ? "admin@ayn.com" : "demo@ayn.com");
+  const [password, setPassword] = useState(initialMode === "admin" ? "admin123" : "demo1234");
   const [name, setName] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => { document.title = "Sign in — Acquire·Your·Need"; }, []);
 
   const switchTab = (t: "user" | "admin") => {
     setTab(t);
@@ -45,7 +37,7 @@ function LoginPage() {
         ? await signup(name || email.split("@")[0], email, password, role)
         : await login(email, password, role);
       const dest = redirect || (u.role === "admin" ? "/admin" : "/dashboard");
-      navigate({ to: dest });
+      navigate(dest);
     } catch (e: any) {
       setErr(e.message || "Something went wrong");
     } finally {
