@@ -1,37 +1,62 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, MapPin, SlidersHorizontal, Star, Inbox } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { Search, MapPin, SlidersHorizontal, Star, Inbox, Loader2, AlertTriangle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { WorkerCard } from "@/components/WorkerCard";
-import { WORKERS, CATEGORIES } from "@/lib/mock-data";
+import { CATEGORIES } from "@/lib/mock-data";
+import { apiSearchWorkers, workerFromRaw, ApiError } from "@/lib/api";
+import type { Worker } from "@/lib/mock-data";
 
 type Sort = "ml" | "rating" | "experience" | "price";
 
 export default function SearchPage() {
   useEffect(() => { document.title = "Search workers — Acquire·Your·Need"; }, []);
-  const [q, setQ] = useState("");
-  const [skill, setSkill] = useState<string>("all");
+  const [params] = useSearchParams();
+
+  const [q, setQ] = useState(params.get("q") ?? "");
+  const [location, setLocation] = useState(params.get("location") ?? "Bengaluru");
+  const [skill, setSkill] = useState<string>(params.get("skill") ?? "all");
   const [minRating, setMinRating] = useState(0);
   const [maxPrice, setMaxPrice] = useState(1000);
   const [availOnly, setAvailOnly] = useState(false);
   const [sort, setSort] = useState<Sort>("ml");
 
+  const [workers, setWorkers] = useState<Worker[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Debounced fetch whenever query/skill/location changes
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setLoading(true);
+      setError(null);
+      apiSearchWorkers({ q, skill, location })
+        .then((res) => setWorkers(res.workers.map(workerFromRaw)))
+        .catch((e) => {
+          setError(e instanceof ApiError ? e.message : "Couldn't reach the server. Is the backend running?");
+          setWorkers([]);
+        })
+        .finally(() => setLoading(false));
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [q, skill, location]);
+
+  // Client-side filters (rating/price/availability) + sort applied on top of the server-ranked result
   const filtered = useMemo(() => {
-    let r = WORKERS.filter((w) => {
-      if (skill !== "all" && w.skill.toLowerCase() !== skill) return false;
+    let r = workers.filter((w) => {
       if (w.rating < minRating) return false;
       if (w.pricePerHour > maxPrice) return false;
       if (availOnly && !w.available) return false;
-      if (q && !`${w.name} ${w.skill} ${w.subSkills.join(" ")}`.toLowerCase().includes(q.toLowerCase())) return false;
       return true;
     });
-    r.sort((a, b) => {
+    r = [...r].sort((a, b) => {
       if (sort === "ml") return b.mlScore - a.mlScore;
       if (sort === "rating") return b.rating - a.rating;
       if (sort === "experience") return b.experience - a.experience;
       return a.pricePerHour - b.pricePerHour;
     });
     return r;
-  }, [q, skill, minRating, maxPrice, availOnly, sort]);
+  }, [workers, minRating, maxPrice, availOnly, sort]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -45,7 +70,7 @@ export default function SearchPage() {
           </div>
           <div className="flex items-center gap-2 px-3 card-soft py-1 md:w-56">
             <MapPin className="w-4 h-4 text-muted-foreground" />
-            <input defaultValue="Bengaluru" className="bg-transparent outline-none py-2 w-full text-sm" />
+            <input value={location} onChange={(e) => setLocation(e.target.value)} className="bg-transparent outline-none py-2 w-full text-sm" />
           </div>
           <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="card-soft px-3 py-2.5 text-sm md:w-52 cursor-pointer">
             <option value="ml">Sort: ML Score</option>
@@ -102,12 +127,25 @@ export default function SearchPage() {
         <main>
           <div className="flex items-baseline justify-between mb-5">
             <h1 className="text-xl font-semibold">
-              {filtered.length} {filtered.length === 1 ? "worker" : "workers"} found
+              {loading ? "Searching…" : `${filtered.length} ${filtered.length === 1 ? "worker" : "workers"} found`}
             </h1>
             <span className="text-xs text-muted-foreground">Ranked by {sort === "ml" ? "ML Score" : sort}</span>
           </div>
 
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="card-soft p-16 text-center flex flex-col items-center gap-3">
+              <Loader2 className="w-6 h-6 text-primary animate-spin" />
+              <p className="text-sm text-muted-foreground">Running ML ranking…</p>
+            </div>
+          ) : error ? (
+            <div className="card-soft p-16 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-red-50 mx-auto flex items-center justify-center mb-4">
+                <AlertTriangle className="w-7 h-7 text-red-500" />
+              </div>
+              <h3 className="font-semibold text-lg">Couldn't load workers</h3>
+              <p className="text-muted-foreground text-sm mt-1">{error}</p>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="card-soft p-16 text-center">
               <div className="w-16 h-16 rounded-2xl bg-muted mx-auto flex items-center justify-center mb-4">
                 <Inbox className="w-7 h-7 text-muted-foreground" />

@@ -5,10 +5,14 @@ import {
   Sparkles, TrendingUp, Bell, CheckCircle2, Clock,
   MapPin, Phone, Mail, ChevronRight, ArrowUpRight,
   ToggleLeft, ToggleRight, User, Shield, LogOut,
-  AlertCircle, ThumbsUp, XCircle, IndianRupee,
+  AlertCircle, ThumbsUp, XCircle, IndianRupee, Loader2,
 } from "lucide-react";
 import { MLScoreRing } from "@/components/MLScoreRing";
 import { useAuth } from "@/lib/auth";
+import {
+  apiGetMyJobRequests, apiUpdateJobRequest, apiGetMyEarnings, apiGetWorker,
+  type RawJobRequest, type RawEarning, ApiError,
+} from "@/lib/api";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type TabId = "overview" | "requests" | "earnings" | "reviews" | "profile" | "settings";
@@ -27,35 +31,24 @@ type Review = {
   comment: string; date: string; task: string;
 };
 
-// ── Mock data scoped to worker ──────────────────────────────────────────────
-const MOCK_REQUESTS: JobRequest[] = [
-  { id: "r1", user: "Sneha Patel", avatar: "SP", task: "Wiring for new 3BHK apartment", location: "Koramangala, Bengaluru", date: "Today, 10:30 AM", budget: 3500, status: "pending" },
-  { id: "r2", user: "Arjun Mehta", avatar: "AM", task: "Smart home setup — Alexa integration", location: "HSR Layout, Bengaluru", date: "Today, 8:00 AM", budget: 6200, status: "pending" },
-  { id: "r3", user: "Priya Nair", avatar: "PN", task: "Fan & light fitting (4 rooms)", location: "Indiranagar, Bengaluru", date: "Yesterday, 5:45 PM", budget: 1800, status: "accepted" },
-  { id: "r4", user: "Karan Shah", avatar: "KS", task: "Short circuit troubleshooting", location: "Whitefield, Bengaluru", date: "2 days ago", budget: 900, status: "declined" },
-  { id: "r5", user: "Meera Iyer", avatar: "MI", task: "Inverter installation & battery setup", location: "Jayanagar, Bengaluru", date: "3 days ago", budget: 4100, status: "accepted" },
-];
-
-const MOCK_EARNINGS: EarningRow[] = [
-  { id: "e1", user: "Priya Nair",  task: "Fan & light fitting",         date: "Dec 18, 2025", amount: 1800, status: "paid" },
-  { id: "e2", user: "Meera Iyer",  task: "Inverter installation",        date: "Dec 15, 2025", amount: 4100, status: "paid" },
-  { id: "e3", user: "Rahul Das",   task: "Panel board upgrade",          date: "Dec 10, 2025", amount: 7500, status: "paid" },
-  { id: "e4", user: "Anita Roy",   task: "Full house wiring (2BHK)",     date: "Dec 5, 2025",  amount: 12000, status: "paid" },
-  { id: "e5", user: "Sneha Patel", task: "Wiring for new 3BHK",         date: "Pending",       amount: 3500, status: "pending" },
-  { id: "e6", user: "Arjun Mehta", task: "Smart home setup",             date: "Pending",       amount: 6200, status: "pending" },
-];
-
-const MOCK_REVIEWS: Review[] = [
-  { id: "v1", user: "Priya Nair",  avatar: "PN", rating: 5, task: "Fan & light fitting",     date: "Dec 19, 2025", comment: "Ravi was extremely professional. Finished all 4 rooms in 2 hours flat. Will hire again!" },
-  { id: "v2", user: "Meera Iyer",  avatar: "MI", rating: 5, task: "Inverter installation",   date: "Dec 16, 2025", comment: "Excellent work. Explained everything clearly and was very punctual." },
-  { id: "v3", user: "Rahul Das",   avatar: "RD", rating: 4, task: "Panel board upgrade",     date: "Dec 11, 2025", comment: "Good work overall. Took a bit longer than expected but quality was top notch." },
-  { id: "v4", user: "Anita Roy",   avatar: "AR", rating: 5, task: "Full house wiring",       date: "Dec 6, 2025",  comment: "Best electrician I've hired. Very clean work, zero shortcuts. Highly recommend!" },
-];
+function fromRawRequest(r: RawJobRequest): JobRequest {
+  return {
+    id: r._id, user: r.user, avatar: r.user.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase(),
+    task: r.task, location: r.location, budget: r.budget, status: r.status,
+    date: new Date(r.createdAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }),
+  };
+}
+function fromRawEarning(e: RawEarning): EarningRow {
+  return {
+    id: e._id, user: e.user, task: e.task, amount: e.amount, status: e.status,
+    date: e.status === "paid" && e.paidAt ? new Date(e.paidAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Pending",
+  };
+}
 
 // ── Sidebar nav config ─────────────────────────────────────────────────────
 const NAV: { id: TabId; label: string; icon: typeof LayoutDashboard; badge?: number }[] = [
   { id: "overview",  label: "Overview",      icon: LayoutDashboard },
-  { id: "requests",  label: "Job Requests",  icon: Briefcase,    badge: 2 },
+  { id: "requests",  label: "Job Requests",  icon: Briefcase },
   { id: "earnings",  label: "Earnings",      icon: Wallet },
   { id: "reviews",   label: "Reviews",       icon: Star },
   { id: "profile",   label: "My Profile",    icon: User },
@@ -68,17 +61,63 @@ export default function WorkerDashboard() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabId>("overview");
   const [available, setAvailable] = useState(user?.available ?? true);
-  const [requests, setRequests] = useState<JobRequest[]>(MOCK_REQUESTS);
+  const [requests, setRequests] = useState<JobRequest[]>([]);
+  const [earnings, setEarnings] = useState<EarningRow[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => { document.title = "Worker Dashboard — Acquire·Your·Need"; }, []);
 
-  const acceptRequest  = (id: string) => setRequests(r => r.map(x => x.id === id ? { ...x, status: "accepted" } : x));
-  const declineRequest = (id: string) => setRequests(r => r.map(x => x.id === id ? { ...x, status: "declined" } : x));
+  // Load job requests, earnings, and this worker's own reviews from the real backend
+  useEffect(() => {
+    if (!user) return;
+    setLoading(true);
+    setError(null);
+    Promise.all([
+      apiGetMyJobRequests(),
+      apiGetMyEarnings(),
+      apiGetWorker(user._id),
+    ])
+      .then(([reqRes, earnRes, workerRes]) => {
+        setRequests(reqRes.requests.map(fromRawRequest));
+        setEarnings(earnRes.earnings.map(fromRawEarning));
+        setReviews(
+          workerRes.reviews.map((r) => ({
+            id: r._id, user: r.author, avatar: r.author.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase(),
+            rating: r.rating, comment: r.text, task: r.task,
+            date: new Date(r.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+          }))
+        );
+      })
+      .catch((e) => setError(e instanceof ApiError ? e.message : "Couldn't load your dashboard data."))
+      .finally(() => setLoading(false));
+  }, [user]);
+
+  const acceptRequest = async (id: string) => {
+    setRequests((r) => r.map((x) => (x.id === id ? { ...x, status: "accepted" } : x)));
+    try {
+      await apiUpdateJobRequest(id, "accepted");
+      // Accepting creates a pending earning on the backend — refresh earnings to reflect it
+      const earnRes = await apiGetMyEarnings();
+      setEarnings(earnRes.earnings.map(fromRawEarning));
+    } catch {
+      setRequests((r) => r.map((x) => (x.id === id ? { ...x, status: "pending" } : x))); // revert on failure
+    }
+  };
+  const declineRequest = async (id: string) => {
+    setRequests((r) => r.map((x) => (x.id === id ? { ...x, status: "declined" } : x)));
+    try {
+      await apiUpdateJobRequest(id, "declined");
+    } catch {
+      setRequests((r) => r.map((x) => (x.id === id ? { ...x, status: "pending" } : x)));
+    }
+  };
 
   const pendingCount  = requests.filter(r => r.status === "pending").length;
-  const paidTotal     = MOCK_EARNINGS.filter(e => e.status === "paid").reduce((s, e) => s + e.amount, 0);
-  const pendingPayout = MOCK_EARNINGS.filter(e => e.status === "pending").reduce((s, e) => s + e.amount, 0);
-  const avgRating     = (MOCK_REVIEWS.reduce((s, r) => s + r.rating, 0) / MOCK_REVIEWS.length).toFixed(1);
+  const paidTotal     = earnings.filter(e => e.status === "paid").reduce((s, e) => s + e.amount, 0);
+  const pendingPayout = earnings.filter(e => e.status === "pending").reduce((s, e) => s + e.amount, 0);
+  const avgRating     = reviews.length ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : (user?.rating ?? 0).toFixed(1);
 
   return (
     <div className="min-h-screen bg-background">
@@ -124,7 +163,7 @@ export default function WorkerDashboard() {
 
           {/* Nav links — all clickable */}
           <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-            {NAV.map(({ id, label, icon: Icon, badge }) => (
+            {NAV.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
                 onClick={() => setTab(id)}
@@ -136,9 +175,9 @@ export default function WorkerDashboard() {
               >
                 <Icon className="w-4 h-4 flex-shrink-0" />
                 <span className="flex-1">{label}</span>
-                {badge !== undefined && badge > 0 && (
+                {id === "requests" && pendingCount > 0 && (
                   <span className="bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-                    {badge}
+                    {pendingCount}
                   </span>
                 )}
                 {tab === id && <ChevronRight className="w-3.5 h-3.5 opacity-50" />}
@@ -180,6 +219,20 @@ export default function WorkerDashboard() {
             </div>
           </div>
 
+          {/* Loading / error guard for the data-driven tabs */}
+          {loading ? (
+            <div className="card-soft p-16 text-center flex flex-col items-center gap-3">
+              <Loader2 className="w-6 h-6 text-primary animate-spin" />
+              <p className="text-sm text-muted-foreground">Loading your dashboard…</p>
+            </div>
+          ) : error ? (
+            <div className="card-soft p-16 text-center">
+              <AlertCircle className="w-7 h-7 text-red-500 mx-auto mb-3" />
+              <h3 className="font-semibold text-lg">Couldn't load your data</h3>
+              <p className="text-muted-foreground text-sm mt-1">{error}</p>
+            </div>
+          ) : (
+          <>
           {/* ── TAB: Overview ─────────────────────────────────────────── */}
           {tab === "overview" && (
             <div className="space-y-6">
@@ -188,7 +241,7 @@ export default function WorkerDashboard() {
                 <StatCard label="Total earned" value={`₹${paidTotal.toLocaleString("en-IN")}`} delta="This month" icon={IndianRupee} accent="primary" onClick={() => setTab("earnings")} />
                 <StatCard label="Pending payout" value={`₹${pendingPayout.toLocaleString("en-IN")}`} delta={`${requests.filter(r=>r.status==="pending").length} active jobs`} icon={Clock} accent="amber" onClick={() => setTab("requests")} />
                 <StatCard label="Jobs completed" value={`${user?.jobsCompleted ?? 612}`} delta="+8 this month" icon={CheckCircle2} accent="primary" onClick={() => setTab("earnings")} />
-                <StatCard label="Avg. rating" value={`${avgRating} ★`} delta={`${MOCK_REVIEWS.length} reviews`} icon={Star} accent="amber" onClick={() => setTab("reviews")} />
+                <StatCard label="Avg. rating" value={`${avgRating} ★`} delta={`${reviews.length} reviews`} icon={Star} accent="amber" onClick={() => setTab("reviews")} />
               </div>
 
               {/* ML Score + pending requests */}
@@ -244,13 +297,19 @@ export default function WorkerDashboard() {
                   {/* Recent review */}
                   <div className="card-soft p-5">
                     <h3 className="font-semibold mb-3">Latest Review</h3>
-                    <div className="text-xs text-muted-foreground mb-1">{MOCK_REVIEWS[0].user} · {MOCK_REVIEWS[0].date}</div>
-                    <div className="flex gap-0.5 mb-2">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className={`w-3.5 h-3.5 ${i < MOCK_REVIEWS[0].rating ? "text-amber-400 fill-amber-400" : "text-muted"}`} />
-                      ))}
-                    </div>
-                    <p className="text-sm text-foreground leading-relaxed">"{MOCK_REVIEWS[0].comment}"</p>
+                    {reviews.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No reviews yet.</p>
+                    ) : (
+                      <>
+                        <div className="text-xs text-muted-foreground mb-1">{reviews[0].user} · {reviews[0].date}</div>
+                        <div className="flex gap-0.5 mb-2">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star key={i} className={`w-3.5 h-3.5 ${i < reviews[0].rating ? "text-amber-400 fill-amber-400" : "text-muted"}`} />
+                          ))}
+                        </div>
+                        <p className="text-sm text-foreground leading-relaxed">"{reviews[0].comment}"</p>
+                      </>
+                    )}
                     <button onClick={() => setTab("reviews")} className="text-xs text-primary mt-3 font-medium hover:underline">See all reviews →</button>
                   </div>
                 </aside>
@@ -283,16 +342,16 @@ export default function WorkerDashboard() {
             <div className="space-y-6">
               <div className="grid sm:grid-cols-3 gap-4">
                 <EarnStat label="Total earned" value={`₹${paidTotal.toLocaleString("en-IN")}`} sub="All time" color="primary" />
-                <EarnStat label="Pending payout" value={`₹${pendingPayout.toLocaleString("en-IN")}`} sub="2 jobs in progress" color="amber" />
-                <EarnStat label="This month" value="₹25,400" sub="+18% vs last month" color="primary" />
+                <EarnStat label="Pending payout" value={`₹${pendingPayout.toLocaleString("en-IN")}`} sub={`${requests.filter(r => r.status === "pending").length} active jobs`} color="amber" />
+                <EarnStat label="Avg. per job" value={`₹${earnings.length ? Math.round(paidTotal / earnings.filter(e => e.status === "paid").length || 1).toLocaleString("en-IN") : 0}`} sub="Based on paid jobs" color="primary" />
               </div>
               <div className="card-soft overflow-hidden">
                 <div className="px-5 py-4 border-b border-border flex items-center justify-between">
                   <h3 className="font-semibold">Transaction History</h3>
-                  <span className="text-xs text-muted-foreground">{MOCK_EARNINGS.length} transactions</span>
+                  <span className="text-xs text-muted-foreground">{earnings.length} transactions</span>
                 </div>
                 <div className="divide-y divide-border">
-                  {MOCK_EARNINGS.map(e => (
+                  {earnings.map(e => (
                     <div key={e.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-secondary/40 transition">
                       <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center flex-shrink-0">
                         {e.user.slice(0, 2)}
@@ -327,12 +386,12 @@ export default function WorkerDashboard() {
                       <Star key={i} className={`w-4 h-4 ${i < Math.round(+avgRating) ? "text-amber-400 fill-amber-400" : "text-muted"}`} />
                     ))}
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1">{MOCK_REVIEWS.length} reviews</div>
+                  <div className="text-xs text-muted-foreground mt-1">{reviews.length} reviews</div>
                 </div>
                 <div className="flex-1 space-y-1.5">
                   {[5,4,3,2,1].map(n => {
-                    const cnt = MOCK_REVIEWS.filter(r => r.rating === n).length;
-                    const pct = Math.round((cnt / MOCK_REVIEWS.length) * 100);
+                    const cnt = reviews.filter(r => r.rating === n).length;
+                    const pct = reviews.length ? Math.round((cnt / reviews.length) * 100) : 0;
                     return (
                       <div key={n} className="flex items-center gap-2 text-xs">
                         <span className="w-3 text-right text-muted-foreground">{n}</span>
@@ -346,7 +405,7 @@ export default function WorkerDashboard() {
                   })}
                 </div>
               </div>
-              {MOCK_REVIEWS.map(r => (
+              {reviews.map(r => (
                 <div key={r.id} className="card-soft p-5">
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex items-center gap-3">
@@ -450,6 +509,8 @@ export default function WorkerDashboard() {
                 <button className="px-5 py-2 border border-red-300 text-red-500 hover:bg-red-50 rounded-lg text-sm font-medium transition">Delete my account</button>
               </div>
             </div>
+          )}
+          </>
           )}
 
         </main>

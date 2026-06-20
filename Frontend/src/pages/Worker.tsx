@@ -1,41 +1,96 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { ArrowLeft, BadgeCheck, MapPin, Star, Phone, MessageCircle, Calendar, Award, Briefcase, CheckCircle2, Lock } from "lucide-react";
+import { ArrowLeft, BadgeCheck, MapPin, Star, Phone, MessageCircle, Calendar, Award, Briefcase, CheckCircle2, Lock, Loader2, AlertTriangle, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Navbar } from "@/components/Navbar";
 import { MLScoreRing } from "@/components/MLScoreRing";
-import { WORKERS, REVIEWS } from "@/lib/mock-data";
 import { useAuth } from "@/lib/auth";
+import { apiGetWorker, apiSubmitReview, apiCreateJobRequest, workerFromRaw, reviewFromRaw, ApiError } from "@/lib/api";
+import type { Worker } from "@/lib/mock-data";
 
 const TABS = ["Overview", "Reviews", "Portfolio", "Contact"] as const;
 type Tab = typeof TABS[number];
+type UiReview = ReturnType<typeof reviewFromRaw>;
 
 export default function WorkerProfile() {
   const { id } = useParams<{ id: string }>();
-  const worker = WORKERS.find((w) => w.id === id) ?? WORKERS[0];
+  const [worker, setWorker] = useState<Worker | null>(null);
+  const [reviews, setReviews] = useState<UiReview[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("Overview");
+  const [hiring, setHiring] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => { document.title = `${worker.name} — Acquire·Your·Need`; }, [worker.name]);
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    apiGetWorker(id)
+      .then((res) => {
+        setWorker(workerFromRaw(res.worker));
+        setReviews(res.reviews.map(reviewFromRaw));
+      })
+      .catch((e) => setError(e instanceof ApiError ? e.message : "Couldn't load this profile."))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  useEffect(() => { if (worker) document.title = `${worker.name} — Acquire·Your·Need`; }, [worker]);
 
   const requireAuth = (action: string) => {
     if (!user) {
       toast.error("Please sign in to continue", { description: `You need a user account to ${action}.` });
-      navigate(`/login?redirect=${encodeURIComponent(`/worker/${worker.id}`)}&mode=user`);
+      navigate(`/login?redirect=${encodeURIComponent(`/worker/${id}`)}&mode=user`);
       return false;
     }
-    if (user.role === "admin") {
+    if (user.role !== "user") {
       toast.error("Switch to a user account to hire workers");
       return false;
     }
     return true;
   };
 
-  const onHire = () => { if (requireAuth("hire a worker")) toast.success(`Hire request sent to ${worker.name}`, { description: "They'll respond within their average response time." }); };
+  const onHire = async () => {
+    if (!worker || !requireAuth("hire a worker")) return;
+    setHiring(true);
+    try {
+      await apiCreateJobRequest({ workerId: worker.id, task: `${worker.skill} job request`, location: `${worker.area}, ${worker.city}`, budget: worker.pricePerHour * 2 });
+      toast.success(`Hire request sent to ${worker.name}`, { description: "They'll respond within their average response time." });
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Couldn't send the request. Try again.");
+    } finally {
+      setHiring(false);
+    }
+  };
   const onSchedule = () => { if (requireAuth("schedule a job")) toast.success("Opening scheduler…"); };
   const onReveal = () => { if (requireAuth("view contact details")) toast.success("Phone number revealed"); };
   const onChat = () => { if (requireAuth("start a chat")) toast.success("Opening chat…"); };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="grid place-items-center py-32">
+          <Loader2 className="w-6 h-6 text-primary animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !worker) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="max-w-md mx-auto py-32 text-center">
+          <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+          <h2 className="font-semibold text-lg">Couldn't load this worker</h2>
+          <p className="text-sm text-muted-foreground mt-1">{error}</p>
+          <Link to="/search" className="inline-block mt-4 text-sm text-primary font-medium hover:underline">← Back to search</Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -138,32 +193,7 @@ export default function WorkerProfile() {
               )}
 
               {tab === "Reviews" && (
-                <div className="space-y-4">
-                  {REVIEWS.map((r) => (
-                    <div key={r.id} className="border border-border rounded-xl p-5">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          <img src={`https://api.dicebear.com/9.x/notionists/svg?seed=${r.author}`} className="w-9 h-9 rounded-full bg-muted" alt="" />
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-sm">{r.author}</span>
-                              {r.verified && (
-                                <span className="inline-flex items-center gap-1 text-xs text-primary"><CheckCircle2 className="w-3 h-3" /> Verified hire</span>
-                              )}
-                            </div>
-                            <div className="text-xs text-muted-foreground">{r.date}</div>
-                          </div>
-                        </div>
-                        <div className="flex gap-0.5">
-                          {Array.from({ length: r.rating }).map((_, i) => (
-                            <Star key={i} className="w-3.5 h-3.5 fill-amber text-[color:var(--color-amber)]" />
-                          ))}
-                        </div>
-                      </div>
-                      <p className="text-sm text-foreground leading-relaxed">{r.text}</p>
-                    </div>
-                  ))}
-                </div>
+                <ReviewsTab workerId={worker.id} reviews={reviews} setReviews={setReviews} user={user} navigate={navigate} />
               )}
 
               {tab === "Portfolio" && (
@@ -179,7 +209,7 @@ export default function WorkerProfile() {
               {tab === "Contact" && (
                 <div className="space-y-3 max-w-md">
                   <div className="flex items-center justify-between p-4 border border-border rounded-xl">
-                    <div className="flex items-center gap-3"><Phone className="w-4 h-4 text-primary" /><span className="text-sm">+91 ••••• 4521</span></div>
+                    <div className="flex items-center gap-3"><Phone className="w-4 h-4 text-primary" /><span className="text-sm">+91 ••••• {worker.id.slice(-4)}</span></div>
                     <button onClick={onReveal} className="text-xs text-primary font-medium">Reveal</button>
                   </div>
                   <div className="flex items-center justify-between p-4 border border-border rounded-xl">
@@ -201,25 +231,111 @@ export default function WorkerProfile() {
               </div>
               <MLScoreRing score={worker.mlScore} size={48} stroke={4} />
             </div>
-            <button onClick={onHire} className="mt-5 w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg py-3 font-medium transition shadow-[0_8px_24px_-8px_rgba(29,158,117,0.6)] flex items-center justify-center gap-2">
-              {!user && <Lock className="w-4 h-4" />} Hire now
+            <button onClick={onHire} disabled={hiring} className="mt-5 w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg py-3 font-medium transition shadow-[0_8px_24px_-8px_rgba(29,158,117,0.6)] flex items-center justify-center gap-2 disabled:opacity-60">
+              {hiring ? <Loader2 className="w-4 h-4 animate-spin" /> : !user && <Lock className="w-4 h-4" />} {hiring ? "Sending…" : "Hire now"}
             </button>
             <button onClick={onSchedule} className="mt-2 w-full border border-border text-foreground hover:bg-secondary rounded-lg py-3 font-medium transition flex items-center justify-center gap-2">
               <Calendar className="w-4 h-4" /> Schedule for later
             </button>
             <div className="mt-5 pt-5 border-t border-border space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Response time</span><span className="font-medium">~18 min</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Completion rate</span><span className="font-medium">99%</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Cancellation</span><span className="font-medium">Free up to 1h</span></div>
             </div>
           </div>
           <div className="card-soft p-5 text-xs text-muted-foreground flex items-start gap-2">
             <BadgeCheck className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-            <p>Background verified · ID & address checked · Paid through Acquire·Your·Need escrow.</p>
+            <p>Background verified · ID & address checked.</p>
           </div>
         </aside>
       </div>
       <div className="h-16" />
+    </div>
+  );
+}
+
+function ReviewsTab({ workerId, reviews, setReviews, user, navigate }: {
+  workerId: string; reviews: UiReview[]; setReviews: (r: UiReview[]) => void;
+  user: ReturnType<typeof useAuth>["user"]; navigate: ReturnType<typeof useNavigate>;
+}) {
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async () => {
+    if (!user) {
+      toast.error("Please sign in to leave a review");
+      navigate(`/login?redirect=${encodeURIComponent(`/worker/${workerId}`)}&mode=user`);
+      return;
+    }
+    if (!rating || !comment.trim()) {
+      toast.error("Add a rating and a short comment first");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await apiSubmitReview(workerId, { rating, comment });
+      setReviews([reviewFromRaw(res.review), ...reviews]);
+      setRating(0);
+      setComment("");
+      toast.success("Review submitted — thanks for the feedback!");
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Couldn't submit your review.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {user?.role === "user" && (
+        <div className="border border-border rounded-xl p-5 space-y-3">
+          <div className="text-sm font-medium">Leave a review</div>
+          <div className="flex gap-1">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button key={n} type="button" onClick={() => setRating(n)}>
+                <Star className={`w-5 h-5 ${n <= rating ? "fill-amber text-[color:var(--color-amber)]" : "text-muted"}`} />
+              </button>
+            ))}
+          </div>
+          <textarea
+            value={comment} onChange={(e) => setComment(e.target.value)} rows={2}
+            placeholder="How was your experience with this worker?"
+            className="w-full text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-primary resize-none"
+          />
+          <button onClick={submit} disabled={submitting}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition disabled:opacity-60">
+            {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />} Submit review
+          </button>
+        </div>
+      )}
+
+      {reviews.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-8">No reviews yet — be the first to leave one.</p>
+      ) : (
+        reviews.map((r) => (
+          <div key={r.id} className="border border-border rounded-xl p-5">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <img src={`https://api.dicebear.com/9.x/notionists/svg?seed=${r.author}`} className="w-9 h-9 rounded-full bg-muted" alt="" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm">{r.author}</span>
+                    {r.verified && (
+                      <span className="inline-flex items-center gap-1 text-xs text-primary"><CheckCircle2 className="w-3 h-3" /> Verified hire</span>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">{r.date}</div>
+                </div>
+              </div>
+              <div className="flex gap-0.5">
+                {Array.from({ length: r.rating }).map((_, i) => (
+                  <Star key={i} className="w-3.5 h-3.5 fill-amber text-[color:var(--color-amber)]" />
+                ))}
+              </div>
+            </div>
+            <p className="text-sm text-foreground leading-relaxed">{r.text}</p>
+          </div>
+        ))
+      )}
     </div>
   );
 }

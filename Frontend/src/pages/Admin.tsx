@@ -3,11 +3,13 @@ import { useEffect, useState } from "react";
 import {
   Shield, Users, TrendingUp, DollarSign, AlertTriangle,
   Search as SearchIcon, CheckCircle2, XCircle, MoreHorizontal, LogOut, Sparkles,
-  LayoutDashboard, UserCheck, MessageSquare, Settings,
+  LayoutDashboard, UserCheck, MessageSquare, Settings, Loader2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { WORKERS, CATEGORIES } from "@/lib/mock-data";
+import { CATEGORIES } from "@/lib/mock-data";
+import { apiGetAllWorkers, workerFromRaw, ApiError } from "@/lib/api";
 import { MLScoreRing } from "@/components/MLScoreRing";
+import type { Worker } from "@/lib/mock-data";
 
 const NAV = [
   { label: "Overview", icon: LayoutDashboard, key: "overview" },
@@ -44,6 +46,16 @@ export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const [tab, setTab] = useState<TabKey>("overview");
   const [q, setQ] = useState("");
+  const [workers, setWorkers] = useState<Worker[]>([]);
+  const [loadingWorkers, setLoadingWorkers] = useState(true);
+  const [workersError, setWorkersError] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiGetAllWorkers()
+      .then((res : any) => setWorkers(res.workers.map(workerFromRaw)))
+      .catch((e : any) => setWorkersError(e instanceof ApiError ? e.message : "Couldn't load workers."))
+      .finally(() => setLoadingWorkers(false));
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -100,8 +112,8 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {tab === "overview" && <Overview />}
-          {tab === "workers" && <WorkersTab q={q} />}
+          {tab === "overview" && <Overview workers={workers} loading={loadingWorkers} />}
+          {tab === "workers" && <WorkersTab q={q} workers={workers} loading={loadingWorkers} error={workersError} />}
           {tab === "users" && <UsersTab q={q} />}
           {tab === "disputes" && <DisputesTab />}
           {tab === "settings" && <SettingsTab />}
@@ -131,18 +143,18 @@ function StatCard({ label, value, delta, icon: Icon, accent }: { label: string; 
   );
 }
 
-function Overview() {
+function Overview({ workers, loading }: { workers: Worker[]; loading: boolean }) {
   const buckets = [
-    { label: "90+", count: WORKERS.filter((w) => w.mlScore >= 90).length, color: "bg-primary" },
-    { label: "75-89", count: WORKERS.filter((w) => w.mlScore >= 75 && w.mlScore < 90).length, color: "bg-[color:var(--color-amber)]" },
-    { label: "<75", count: WORKERS.filter((w) => w.mlScore < 75).length, color: "bg-muted-foreground" },
+    { label: "90+", count: workers.filter((w) => w.mlScore >= 90).length, color: "bg-primary" },
+    { label: "75-89", count: workers.filter((w) => w.mlScore >= 75 && w.mlScore < 90).length, color: "bg-[color:var(--color-amber)]" },
+    { label: "<75", count: workers.filter((w) => w.mlScore < 75).length, color: "bg-muted-foreground" },
   ];
   const totalRev = HIRES.filter((h) => h.status === "completed").reduce((s, h) => s + h.amount, 0);
 
   return (
     <div className="space-y-8">
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Workers" value="2,418" delta="+24 this week" icon={UserCheck} accent="primary" />
+        <StatCard label="Workers" value={loading ? "…" : workers.length.toLocaleString("en-IN")} delta={loading ? "Loading" : `${workers.filter(w => w.verified).length} verified`} icon={UserCheck} accent="primary" />
         <StatCard label="Active users" value="14,820" delta="+312 this week" icon={Users} accent="navy" />
         <StatCard label="Revenue (₹)" value={totalRev.toLocaleString()} delta="+18.4% MoM" icon={DollarSign} accent="amber" />
         <StatCard label="Open disputes" value={String(DISPUTES.length)} delta="2 unresolved" icon={AlertTriangle} accent="red" />
@@ -185,13 +197,13 @@ function Overview() {
                   <span className="text-muted-foreground tabular-nums">{b.count} workers</span>
                 </div>
                 <div className="h-2.5 rounded-full bg-muted overflow-hidden">
-                  <div className={`h-full ${b.color}`} style={{ width: `${(b.count / WORKERS.length) * 100}%` }} />
+                  <div className={`h-full ${b.color}`} style={{ width: `${workers.length ? (b.count / workers.length) * 100 : 0}%` }} />
                 </div>
               </div>
             ))}
           </div>
           <div className="mt-6 pt-5 border-t border-border text-xs text-muted-foreground">
-            Total active workers: <span className="font-semibold text-foreground tabular-nums">{WORKERS.length}</span>
+            Total active workers: <span className="font-semibold text-foreground tabular-nums">{loading ? "…" : workers.length}</span>
           </div>
         </section>
       </div>
@@ -252,8 +264,8 @@ function PendingTable() {
   );
 }
 
-function WorkersTab({ q }: { q: string }) {
-  const filtered = WORKERS.filter((w) =>
+function WorkersTab({ q, workers, loading, error }: { q: string; workers: Worker[]; loading: boolean; error: string | null }) {
+  const filtered = workers.filter((w) =>
     !q || `${w.name} ${w.skill} ${w.city}`.toLowerCase().includes(q.toLowerCase()),
   );
   return (
@@ -263,7 +275,12 @@ function WorkersTab({ q }: { q: string }) {
         <PendingTable />
       </div>
       <div className="card-soft p-6">
-        <h3 className="font-semibold mb-4">All workers ({filtered.length})</h3>
+        <h3 className="font-semibold mb-4">All workers ({loading ? "…" : filtered.length})</h3>
+        {loading ? (
+          <div className="py-10 text-center"><Loader2 className="w-5 h-5 text-primary animate-spin mx-auto" /></div>
+        ) : error ? (
+          <div className="py-10 text-center text-sm text-red-500 flex items-center justify-center gap-2"><AlertTriangle className="w-4 h-4" /> {error}</div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-xs text-muted-foreground uppercase tracking-wider">
@@ -308,6 +325,7 @@ function WorkersTab({ q }: { q: string }) {
             </tbody>
           </table>
         </div>
+        )}
       </div>
     </div>
   );

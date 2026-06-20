@@ -2,11 +2,12 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
   LayoutDashboard, Search as SearchIcon, Briefcase, MessageSquare, Settings,
-  Sparkles, TrendingUp, Wallet, Star, ArrowUpRight, Plus, Bell, Clock,
+  Sparkles, TrendingUp, Wallet, Star, ArrowUpRight, Plus, Bell, Clock, Loader2,
 } from "lucide-react";
 import { WorkerCard } from "@/components/WorkerCard";
-import { WORKERS } from "@/lib/mock-data";
+import { apiSearchWorkers, workerFromRaw } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import type { Worker } from "@/lib/mock-data";
 
 const NAV = [
   { label: "Overview", icon: LayoutDashboard, active: true },
@@ -27,6 +28,16 @@ export default function Dashboard() {
   useEffect(() => { document.title = "Dashboard — Acquire·Your·Need"; }, []);
   const [search, setSearch] = useState("");
   const { user } = useAuth();
+  const [recommended, setRecommended] = useState<Worker[]>([]);
+  const [loadingRec, setLoadingRec] = useState(true);
+
+  // Top 3 ML-ranked workers, used as "Recommended for you"
+  useEffect(() => {
+    apiSearchWorkers({})
+      .then((res) => setRecommended(res.workers.slice(0, 3).map(workerFromRaw)))
+      .catch(() => setRecommended([]))
+      .finally(() => setLoadingRec(false));
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -102,9 +113,15 @@ export default function Dashboard() {
                 </Link>
               </div>
               <div className="grid gap-4">
-                {WORKERS.slice(0, 3).map((w, i) => (
-                  <WorkerCard key={w.id} worker={w} rank={i + 1} />
-                ))}
+                {loadingRec ? (
+                  <div className="card-soft p-10 text-center"><Loader2 className="w-5 h-5 text-primary animate-spin mx-auto" /></div>
+                ) : recommended.length === 0 ? (
+                  <div className="card-soft p-10 text-center text-sm text-muted-foreground">No recommendations yet — try searching for a worker.</div>
+                ) : (
+                  recommended.map((w, i) => (
+                    <WorkerCard key={w.id} worker={w} rank={i + 1} />
+                  ))
+                )}
               </div>
             </section>
 
