@@ -1,19 +1,12 @@
-/**
- * Seed script — populates MongoDB with realistic demo data so the app
- * behaves like a live product immediately after setup.
- *
- * Run with: npm run seed
- * Safe to re-run — it wipes and re-creates all collections.
- */
 require('dotenv').config();
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const connectDB = require('../config/db.js');
 
-const User = require('../models/user.models');
-const Review = require('../models/review.models');
-const JobRequest = require('../models/jobRequest.models');
-const Earning = require('../models/earning.models');
+const User = require('../models/user.models.js');
+const Review = require('../models/review.models.js');
+const JobRequest = require('../models/jobrequest.models.js');
+const Earning = require('../models/earning.models.js');
 
 const avatar = (seed) =>
   `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(seed)}&backgroundColor=c0aede,ffd5dc,b6e3f4,ffdfbf,d1f7c4`;

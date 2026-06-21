@@ -1,6 +1,3 @@
-// import mongoose from "mongoose";
-// import dotenv from "dotenv";
-// import { DB_NAME} from "../../constraints.js";
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const { DB_NAME } = require('../../constraints.js');
@@ -18,5 +15,4 @@ const connectDB = async () => {
     }
 }
 
-// export { connectDB };
 module.exports = connectDB;
