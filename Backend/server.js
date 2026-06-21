@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const connectDB = require('./src/config/db');
+const keepAlive = require('./keepalive.js');
 
 const authRoutes     = require('./src/routes/auth.js');
 const workerRoutes   = require('./src/routes/worker.js');
