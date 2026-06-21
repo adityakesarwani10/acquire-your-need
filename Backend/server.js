@@ -39,11 +39,13 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong', details: err.message });
 });
 
+
 // ── Start server only after DB connects ──────────────────────────────────────
 connectDB().then(() => {
   app.listen(PORT, () => {
     console.log(`\n🚀 Acquire-Your-Need API running at http://localhost:${PORT}`);
     console.log(`   Health:  http://localhost:${PORT}/api/health`);
     console.log(`   Workers: http://localhost:${PORT}/api/workers\n`);
+    keepAlive(process.env.BACKEND_URL + "/api/health");
   });
 });

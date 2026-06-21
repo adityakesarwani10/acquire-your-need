@@ -1,0 +1,42 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependencies
+node_modules/
+
+# dotenv environment variables
+.env
+.env.*
+
+# Build outputs
+# (kept generic in case you add bundlers/transpilers later)
+dist/
+build/
+
+# Coverage
+coverage/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Runtime
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# nodemon / local tools
+.nodemon-debug.log*
+
