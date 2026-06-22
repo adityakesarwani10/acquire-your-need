@@ -48,8 +48,6 @@ type AuthCtx = {
 };
 
 const Ctx = createContext<AuthCtx | null>(null);
-console.log("Auth context initialized"); // Debugging line to confirm context creation
-
 function fromApiUser(u: ApiUser): AuthUser {
   return { ...u, id: u.id, role: u.role as Role };
 }
@@ -108,7 +106,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const v = useContext(Ctx);
-  console.log("useAuth called, context value:", v); // Debugging line to check context value
   if (!v) throw new Error("useAuth must be used inside <AuthProvider>");
   return v;
 }
