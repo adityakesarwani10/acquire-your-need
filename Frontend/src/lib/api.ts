@@ -3,7 +3,7 @@
  * Base URL comes from VITE_API_URL (set in .env), defaulting to localhost:5000.
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const API_BASE = import.meta.env.VITE_API_URL+"/api" || "http://localhost:8000/api";
 const TOKEN_KEY = "ayn.token";
 
 export function getToken(): string | null {
