@@ -1,3 +1,4 @@
+
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Sparkles, Shield, User as UserIcon, Wrench, Loader2, AlertCircle } from "lucide-react";
@@ -66,14 +67,14 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-navy text-white relative overflow-hidden grid place-items-center px-4 py-12">
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full opacity-40 blur-3xl animate-float-slow"
+        <div className="absolute -top-40 -left-40 w-125 h-125 rounded-full opacity-40 blur-3xl animate-float-slow"
              style={{ background: "radial-gradient(circle, oklch(0.55 0.18 162) 0%, transparent 70%)" }} />
-        <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full opacity-30 blur-3xl animate-float-slower"
+        <div className="absolute -bottom-40 -right-40 w-125 h-125 rounded-full opacity-30 blur-3xl animate-float-slower"
              style={{ background: "radial-gradient(circle, oklch(0.45 0.2 250) 0%, transparent 70%)" }} />
       </div>
       <div className="relative w-full max-w-md">
         <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-emerald-300 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-lg bg-linear-to-br from-primary to-emerald-300 flex items-center justify-center">
             <Sparkles className="w-4 h-4 text-white" />
           </div>
           <span className="font-bold tracking-tight">Acquire·Your·Need</span>
